@@ -48,6 +48,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MatrixHelper.cs" />
+    <Compile Include="MouseEventHelper.cs" />
+    <Compile Include="PatternAnalyzer.cs" />
+    <Compile Include="PatternBank.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
