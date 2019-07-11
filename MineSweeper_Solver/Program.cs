@@ -19,12 +19,8 @@ namespace MineSweeper_Solver
         [DllImport("user32.dll", SetLastError = true)]
         public static extern IntPtr SetActiveWindow(IntPtr hWnd);
 
-        // ##############################################################################
-        // ##############################################################################
-        // ##############################################################################
-
         static CUIAutomation _automation = new CUIAutomation();
- 
+
         static string WindowCaption = "Сапер";
         static IntPtr MineSweeperHWND;
         static IUIAutomationElement appElement;
@@ -404,13 +400,11 @@ namespace MineSweeper_Solver
             }
         };
 
-
         // возвращает оффсет - для наглядности
-        public static Point getPointFromInt(int x, int y) {
+        public static Point getPointFromInt(int x, int y)
+        {
             return new Point() { X = x, Y = y };
         }
-
-
 
         public static void sendMouseEventsFromMSGF(MSGF_Data data)
         {
@@ -456,21 +450,26 @@ namespace MineSweeper_Solver
             return true;
         }
 
-        public static bool isEqual_MSGF_Data(MSGF_Data d1, MSGF_Data d2) {
+        public static bool isEqual_MSGF_Data(MSGF_Data d1, MSGF_Data d2)
+        {
             if (d1.ColsCount != d2.ColsCount) { return false; }
             if (d1.RowsCount != d2.RowsCount) { return false; }
 
-            for (int i = 0; i < d1.ColsCount; i++) {
-                for (int j = 0; j < d1.RowsCount; j++) {
+            for (int i = 0; i < d1.ColsCount; i++)
+            {
+                for (int j = 0; j < d1.RowsCount; j++)
+                {
                     if (!isEqual_MSGF_Cell(d1.cells[i, j], d2.cells[i, j])) { return false; }
-                } 
+                }
             }
 
             return true;
         }
 
-        public static MSGF_Cell copyMSGF_Cell(MSGF_Cell c) {
-            MSGF_Cell tmp_c = new MSGF_Cell {
+        public static MSGF_Cell copyMSGF_Cell(MSGF_Cell c)
+        {
+            MSGF_Cell tmp_c = new MSGF_Cell
+            {
                 state = c.state,
                 elem = c.elem,
                 mouseEvent = c.mouseEvent,
@@ -481,17 +480,21 @@ namespace MineSweeper_Solver
 
         }
 
-        public static MSGF_Data copy_MSGF_Data(MSGF_Data d) {
-            MSGF_Data tmp_d = new MSGF_Data {
+        public static MSGF_Data copy_MSGF_Data(MSGF_Data d)
+        {
+            MSGF_Data tmp_d = new MSGF_Data
+            {
                 ColsCount = d.ColsCount,
                 RowsCount = d.RowsCount,
 
                 cells = new MSGF_Cell[d.ColsCount, d.RowsCount],
             };
 
-            for (int i = 0; i < d.ColsCount; i++) {
-                for (int j = 0; j < d.RowsCount; j++) {
-                    tmp_d.cells[i, j] = copyMSGF_Cell(d.cells[i,j]);
+            for (int i = 0; i < d.ColsCount; i++)
+            {
+                for (int j = 0; j < d.RowsCount; j++)
+                {
+                    tmp_d.cells[i, j] = copyMSGF_Cell(d.cells[i, j]);
                 }
             }
 
@@ -513,7 +516,6 @@ namespace MineSweeper_Solver
             public int count_mine_checked;
             public int count_mine_to_check;
         }
-
 
         static public MSGF_Data ParseMineSweeperGameField()
         {
@@ -552,7 +554,7 @@ namespace MineSweeper_Solver
                         {
                             string nm = array_cells.GetElement(i).CurrentName;
                             result.cells[i, j - 1].elem = array_cells.GetElement(i); // Runtime Error Out of range
-                            
+
 
                             if (nm.Contains("помечена")) { result.cells[i, j - 1].state = -2; continue; }
                             if (nm.Contains("неоткрыта")) { result.cells[i, j - 1].state = -1; result.Xcells++; continue; }
@@ -653,7 +655,8 @@ namespace MineSweeper_Solver
             return result;
         }
 
-        public static bool IsDialogWindow() {
+        public static bool IsDialogWindow()
+        {
             //Stopwatch diagTimer = new Stopwatch();
             //diagTimer.Start();
 
@@ -661,7 +664,8 @@ namespace MineSweeper_Solver
 
             var array_windows = appElement.FindAll(TreeScope.TreeScope_Children, _automation.CreatePropertyCondition(UIA_PropertyIds.UIA_ControlTypePropertyId, UIA_ControlTypeIds.UIA_WindowControlTypeId));
 
-            for (int i = 0; i < array_windows.Length; i++) {
+            for (int i = 0; i < array_windows.Length; i++)
+            {
                 string s_name = array_windows.GetElement(i).CurrentName;
 
                 if (s_name.Contains("Игра проиграна") || s_name.Contains("Игра выиграна") || s_name.Contains("Новая игра")) { result = true; }
@@ -672,14 +676,14 @@ namespace MineSweeper_Solver
             return result;
         }
 
-        public static string diagTimeToString(TimeSpan t) {
+        public static string diagTimeToString(TimeSpan t)
+        {
             return String.Format("{0:00}:{1:00}:{2:00}.{3:000}",
                 t.Hours,
                 t.Minutes,
                 t.Seconds,
                 t.Milliseconds);
         }
-
 
         public static void Basic_AnalyzeMSGF(ref MSGF_Data data)
         {
@@ -747,7 +751,7 @@ namespace MineSweeper_Solver
                         if (mines_count == mtx.count_closed + mtx.count_mine_checked + mtx.count_mine_to_check)
                         {
                             for (int n = 0; n < mtx.count_closed; n++)
-                            { 
+                            {
                                 data.cells[mtx.coord_closed[n].x, mtx.coord_closed[n].y].state = -3;
                                 data.cells[mtx.coord_closed[n].x, mtx.coord_closed[n].y].sendMouseEvent = true;
                                 data.cells[mtx.coord_closed[n].x, mtx.coord_closed[n].y].mouseEvent = MouseEventHelper.RIGHT_CLICK;
@@ -786,27 +790,28 @@ namespace MineSweeper_Solver
             return tmp_m;
         }
 
-
-        public static void Pattern_AnalyzeMSGF(ref MSGF_Data data) {
-
+        public static class PatternaAalyzer
+        {
             // сложение матрицы и паттерна
-            matrix sumMatrixAndPattern(matrix m, matrix p)
+            static matrix sumMatrixAndPattern(matrix m, matrix p)
             {
                 if (!MatrixHelper.isEqualMatrixSizes(m, p)) { throw new Exception("MatrixSizesEqualError"); }
                 matrix tmp_m = MatrixHelper.getNoInitMatrixFrom(m);
 
                 MatrixHelper.initMatrixWithValues(ref tmp_m, 9);
 
-                var pm = MatrixHelper.getPatternMask(p); 
+                var pm = MatrixHelper.getPatternMask(p);
 
-                for (int j = 0; j < m.rows; j++) {
-                    for (int i = 0; i < m.cols; i++) {
+                for (int j = 0; j < m.rows; j++)
+                {
+                    for (int i = 0; i < m.cols; i++)
+                    {
                         int v_m = m.cells[j, i];
                         int v_pm = pm.cells[j, i];
                         int v_p = p.cells[j, i];
 
                         if (v_m == v_pm && v_m == 0) { tmp_m.cells[j, i] = 0; continue; }
-                        if (v_m == v_pm && (v_m >0 && v_m < 9)) { tmp_m.cells[j, i] = v_m; continue; }
+                        if (v_m == v_pm && (v_m > 0 && v_m < 9)) { tmp_m.cells[j, i] = v_m; continue; }
                         if (v_pm == 0 && (v_m > 0 && v_m < 9)) { tmp_m.cells[j, i] = 0; continue; }
                         if (v_pm == -1 && (v_m == -1 || v_m == -2 || v_m == -3)) { tmp_m.cells[j, i] = -1; continue; }
 
@@ -822,7 +827,7 @@ namespace MineSweeper_Solver
             }
 
             // получаем матрицу с минами или отметками их
-            matrix getMines(matrix m)
+            static matrix getMines(matrix m)
             {
                 matrix tmp_m = MatrixHelper.getNoInitMatrixFrom(m);
 
@@ -846,14 +851,16 @@ namespace MineSweeper_Solver
                 return tmp_m;
             }
 
-             // провепка на совпадение петтерна и части игрового поля
+            // провепка на совпадение петтерна и части игрового поля
             // эту функцию нужно заменить на функцию  с возвращением матрицы: с нолями если ошибка применения паттерна и 
-            bool cmpMatrixAndPatternMask(matrix m, matrix p) {
+            static bool cmpMatrixAndPatternMask(matrix m, matrix p)
+            {
                 return MatrixHelper.isEqualMatrix(sumMatrixAndPattern(m, p), MatrixHelper.getPatternMask(p));
             }
 
             // проверка совпадения матрицы и петтерна. В случае успеха в result лежит матрица с указанием отметок мин
-            bool cmpMatrixAndPattern(matrix m, matrix p, ref matrix result) {
+            static bool cmpMatrixAndPattern(matrix m, matrix p, ref matrix result)
+            {
                 result = MatrixHelper.getNoInitMatrixFrom(m);
                 MatrixHelper.initMatrixWithZeroes(ref result);
 
@@ -861,12 +868,15 @@ namespace MineSweeper_Solver
                 {
                     return false;
                 }
-                else {
+                else
+                {
                     matrix mines_m = getMines(m);
                     matrix mines_p = getMines(p);
 
-                    for (int j = 0; j < mines_m.rows; j++) {
-                        for (int i = 0; i < mines_m.cols; i++) {
+                    for (int j = 0; j < mines_m.rows; j++)
+                    {
+                        for (int i = 0; i < mines_m.cols; i++)
+                        {
                             int
                                 v_mm = mines_m.cells[j, i],
                                 v_mp = mines_p.cells[j, i];
@@ -884,11 +894,14 @@ namespace MineSweeper_Solver
                     return !MatrixHelper.isZeroMatrix(result);
                 }
             }
-           
+
             // применить результаты на матрицу
-            void applyResult(ref matrix m, int x, int y, matrix result) {
-                for (int j = 0; j < result.rows; j++) {
-                    for (int i = 0; i < result.cols; i++) {
+            static void applyResult(ref matrix m, int x, int y, matrix result)
+            {
+                for (int j = 0; j < result.rows; j++)
+                {
+                    for (int i = 0; i < result.cols; i++)
+                    {
                         if (result.cells[j, i] == 0) { continue; }
                         if (x + i < 0 || x + i >= m.cols) { continue; }
                         if (y + j < 0 || y + j >= m.rows) { continue; }
@@ -899,14 +912,18 @@ namespace MineSweeper_Solver
             }
 
             // прогоняем по игровому полю паттерн, при совпадение применяем изменения
-            void findAndApplyPattern(ref matrix m, matrix p) {
-                for (int j = -1; j <= m.rows - p.rows + 1; j++) {
-                    for (int i = -1; i <= m.cols - p.cols + 1; i++) {
-                        matrix sub_matrix = MatrixHelper.getMatrixSlice(m, i , j, p.cols, p.rows);
+            static void findAndApplyPattern(ref matrix m, matrix p)
+            {
+                for (int j = -1; j <= m.rows - p.rows + 1; j++)
+                {
+                    for (int i = -1; i <= m.cols - p.cols + 1; i++)
+                    {
+                        matrix sub_matrix = MatrixHelper.getMatrixSlice(m, i, j, p.cols, p.rows);
 
                         matrix buffer = new matrix();
 
-                        if (cmpMatrixAndPattern(sub_matrix, p, ref buffer)) {
+                        if (cmpMatrixAndPattern(sub_matrix, p, ref buffer))
+                        {
                             applyResult(ref m, i, j, buffer);
                         }
 
@@ -917,12 +934,14 @@ namespace MineSweeper_Solver
             }
 
             // добавляем все возможные варианты паттерна (повороты и зеркалирование) в кеш (библиотеку)
-            void addToPatternCache(matrix p, ref List<matrix> list_pattern) {
+            static void addToPatternCache(matrix p, ref List<matrix> list_pattern)
+            {
                 matrix m_a = p;
                 matrix m_b = MatrixHelper.mirrorMatrixHorizontal(p);
                 matrix m_c = MatrixHelper.mirrorMatrixVertical(p);
 
-                for (int n = 0; n < 4; n++) {
+                for (int n = 0; n < 4; n++)
+                {
                     list_pattern.Add(m_a);
                     list_pattern.Add(m_b);
                     list_pattern.Add(m_c);
@@ -934,7 +953,8 @@ namespace MineSweeper_Solver
             }
 
             //  проверям соответсвие массива строк формату паттерна
-            bool checkPatternStringArr(string[] patternStringArr) {
+            static bool checkPatternStringArr(string[] patternStringArr)
+            {
                 if (patternStringArr.Length == 0) { return false; }
                 if (patternStringArr[0].Length == 0) { return false; }
 
@@ -942,15 +962,17 @@ namespace MineSweeper_Solver
                     p_rows = patternStringArr.Length,
                     p_cols = patternStringArr[0].Length;
 
-                for (int n = 0; n < p_rows; n++) {
+                for (int n = 0; n < p_rows; n++)
+                {
                     if (patternStringArr[n].Length != p_cols) { return false; }
                 }
-                
+
                 return true;
             }
 
             // преобразуем массив строк в матрицу
-            matrix loadPatternFromStringArr (string[] patternStringArr) {
+            static matrix loadPatternFromStringArr(string[] patternStringArr)
+            {
                 matrix tmp_m;
 
                 if (!checkPatternStringArr(patternStringArr)) { throw new Exception("patternStringArr_Wrong_format"); }
@@ -995,17 +1017,22 @@ namespace MineSweeper_Solver
             }
 
             // загружаем паттерны в кэш (библиотеку) из банка 
-            void loadPatternsFromBank (string[][] patternBank, ref List<matrix> list_pattern) {
-                for (int n = 0; n < patternBank.Length; n++) {
+            public static void loadPatternsFromBank(string[][] patternBank, ref List<matrix> list_pattern)
+            {
+                for (int n = 0; n < patternBank.Length; n++)
+                {
                     addToPatternCache(loadPatternFromStringArr(patternBank[n]), ref list_pattern);
-                }                
+                }
             }
 
-
-            void optimizePatternCache (ref List<matrix> list_pattern) {
-                for (int n = list_pattern.Count - 1; n >= 0; n--) {
-                    for (int m = n - 1; m >= 0; m--) {
-                        if (MatrixHelper.isEqualMatrix(list_pattern[n], list_pattern[m])) {
+            public static void optimizePatternCache(ref List<matrix> list_pattern)
+            {
+                for (int n = list_pattern.Count - 1; n >= 0; n--)
+                {
+                    for (int m = n - 1; m >= 0; m--)
+                    {
+                        if (MatrixHelper.isEqualMatrix(list_pattern[n], list_pattern[m]))
+                        {
                             list_pattern.RemoveAt(n);
                             break;
                         }
@@ -1013,8 +1040,8 @@ namespace MineSweeper_Solver
                 }
             }
 
-
-            void exportMatrixToMSGF(matrix m,ref MSGF_Data msgf) {
+            static void exportMatrixToMSGF(matrix m, ref MSGF_Data msgf)
+            {
 
                 for (int j = 0; j < msgf.RowsCount; j++)
                 {
@@ -1022,7 +1049,8 @@ namespace MineSweeper_Solver
                     {
                         int v_m = m.cells[j, i];
                         msgf.cells[i, j].state = v_m;
-                        if (v_m == -3) {
+                        if (v_m == -3)
+                        {
                             msgf.cells[i, j].sendMouseEvent = true;
                             msgf.cells[i, j].mouseEvent = MouseEventHelper.RIGHT_CLICK;
                         }
@@ -1030,51 +1058,20 @@ namespace MineSweeper_Solver
                 }
             }
 
-
-
-            // #######################################################
-
-            // это тестовое поле
-            matrix GameField = new matrix {
-                cols = 9,
-                rows = 9,
-                cells = new int[,]{
-                    { -1, -1, -1, -1, -1, 0, 0, 0, 0 },
-                    { -1, 1, 1, 4, -1, 0, 0, 0, 0 },
-                    { -1, 2, 0, 3, -1, 0, 0, 0, 0 },
-                    { -1, 1, 1, 3, -1, 0, 0, 0, 0 },
-                    { -1, 1, 1, -1, -1, 0, 0, 0, 0 },
-                    { -1, 1, 1, 2, -1, 0, 0, 0, 0 },
-                    { -1, 2, 2, 3, -1, 0, 0, 0, 0 },
-                    { -1, -1, -1, -1, -1, 0, 0, 0, 0 },
-                    { 0, 0, 0, 0, 0, 0, 0, 0, 4 },
-                }
-            };
-
-           
-
-            if (!madePatternCache) {
-                loadPatternsFromBank(stringsPatternBank, ref cachePattern);
-                Console.WriteLine($"PatternsRaw: {cachePattern.Count}");
-
-                optimizePatternCache(ref cachePattern);
-
-                Console.WriteLine($"Patterns: {cachePattern.Count}");
-                //Console.ReadLine();
-                madePatternCache = true;
-            }
-
-            GameField = getMatrixFromMSGF(data);
-
-
-            foreach (matrix p in cachePattern)
+            public static void analyzeMSGF(ref MSGF_Data data)
             {
-                findAndApplyPattern(ref GameField, p);
+                matrix GameField = getMatrixFromMSGF(data);
+
+                foreach (matrix p in cachePattern)
+                {
+                    findAndApplyPattern(ref GameField, p);
+                }
+
+                exportMatrixToMSGF(GameField, ref data);
             }
-
-            exportMatrixToMSGF(GameField, ref data);
-
         }
+
+
 
         // **************************************
         // Entring point Main
@@ -1084,6 +1081,7 @@ namespace MineSweeper_Solver
             // ToDo: Поиск названеия окна на разных языках
             MineSweeperHWND = FindWindowByCaption(IntPtr.Zero, WindowCaption);
 
+            // если окно игры не найдено, то выход из приложения
             if (MineSweeperHWND == IntPtr.Zero)
             {
                 Console.WriteLine("Окно игры не найдено!");
@@ -1091,50 +1089,44 @@ namespace MineSweeper_Solver
                 System.Environment.Exit(-1);
             }
 
+            // загружаем паттерны в банк
+            PatternaAalyzer.loadPatternsFromBank(stringsPatternBank, ref cachePattern);
+            // оптимизация паттернов в банке (удаляет дубли)
+            PatternaAalyzer.optimizePatternCache(ref cachePattern);
 
+            Console.WriteLine($"Patterns: {cachePattern.Count}");
 
             while (true)
             {
-
-                // Задержка в милисекундах
-                //System.Threading.Thread.Sleep(100);
-
-                // парсим игровое поле сапера
-               
-
-                //diagTimer.Start();
+                // Парсим поле
                 var ms_data = ParseMineSweeperGameField();
-                //diagTimer.Stop();
-                //Console.WriteLine("T {0}",diagTimeToString(diagTimer.Elapsed));
-
 
                 // проверка на наличие открытых ячеек
                 if (IsGameStarted(ms_data))
                 {
                     if (!IsDialogWindow())
                     {
+                        // поиск и применение паттернов на поле
+                        PatternaAalyzer.analyzeMSGF(ref ms_data);
 
-                        Pattern_AnalyzeMSGF(ref ms_data);
+                        // элементарный анализ
                         Basic_AnalyzeMSGF(ref ms_data);
 
-
-                        // вывод  в консоль
-                        // ResultConsoleOutput(ms_data);
-                        //System.Threading.Thread.Sleep(1000);
+                        // клики по ячейкам
                         sendMouseEventsFromMSGF(ms_data);
                     }
                     else
                     {
+                        // если открыто диалоговое окно (начало игры, вы выиграли или проиграли)
                         Console.ResetColor();
-                        //Console.Clear();
                         Console.WriteLine("Открыто диалоговое окно");
                         System.Threading.Thread.Sleep(100);
                     }
                 }
                 else
                 {
+                    // если все ячейки закрыты
                     Console.ResetColor();
-                    //Console.Clear();
                     Console.WriteLine("Игра не начата");
                     System.Threading.Thread.Sleep(100);
                 }
