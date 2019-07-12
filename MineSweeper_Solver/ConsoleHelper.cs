@@ -9,12 +9,6 @@ namespace MineSweeper_Solver
 {
     public class ConsoleHelper
     {
-        // возвращает оффсет - для наглядности
-        public static Point getPointFromInt(int x, int y)
-        {
-            return new Point() { X = x, Y = y };
-        }
-
         // красивости
         public static void offsetWrite(string s, Point position, System.ConsoleColor fg = ConsoleColor.Gray, ConsoleColor bg = ConsoleColor.Black)
         {
@@ -38,19 +32,19 @@ namespace MineSweeper_Solver
 
             // head
             s = '+' + new string('-', w - 2) + '+';
-            offsetWrite(s, getPointFromInt(x, y), fg, bg);
+            offsetWrite(s, new Point(x, y), fg, bg);
 
             // body
             for (int j = 1; j < h - 1; j++)
             {
                 s = '|' + new string(' ', w - 2) + '|';
-                offsetWrite(s, getPointFromInt(x, y + j), fg, bg);
+                offsetWrite(s, new Point(x, y + j), fg, bg);
 
             }
 
             //footer
             s = '+' + new string('-', w - 2) + '+';
-            offsetWrite(s, getPointFromInt(x, y + h - 1), fg, bg);
+            offsetWrite(s, new Point(x, y + h - 1), fg, bg);
         }
 
         public static void drawBorder(int x, int y, int w, int h, ConsoleColor fg = ConsoleColor.Gray, ConsoleColor bg = ConsoleColor.Black)
@@ -58,7 +52,7 @@ namespace MineSweeper_Solver
             drawBorderRECT(new Rectangle { X = x, Y = y, Width = w, Height = h }, fg, bg);
         }
 
-        // отрисовываем матрицу на экране - это тест функция
+        // отрисовываем матрицу на экране
         public static void drawMatrix(matrix m, Point position)
         {
             for (int j = 0; j < m.rows; j++)
@@ -72,9 +66,18 @@ namespace MineSweeper_Solver
                     if (state == -1) { Console.Write("#"); continue; }
                     if (state == -2) { Console.Write("M"); continue; }
                     if (state == -3) { Console.Write("@"); continue; }
+                    if (state == -4) { Console.Write("W"); continue; }
+                    if (state == -5) { Console.Write("^"); continue; }
                     Console.Write(state.ToString());
                 }
             }
+        }
+
+        public static void drawMatrixWithBorder(matrix m, Point position)
+        {
+            drawBorder(position.X, position.Y, m.cols + 2, m.rows + 2);
+
+            drawMatrix(m, new Point(position.X + 1, position.Y + 1));
         }
     }
 }

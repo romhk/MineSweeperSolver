@@ -122,7 +122,7 @@ namespace MineSweeper_Solver
             {
                 for (int i = 0; i < p.cols; i++)
                 {
-                    if (p.cells[j, i] == -2) { tmp_m.cells[j, i] = -1; continue; }
+                    if (p.cells[j, i] == -2 || p.cells[j, i] == -4 || p.cells[j, i] == -5) { tmp_m.cells[j, i] = -1; continue; }
                     tmp_m.cells[j, i] = p.cells[j, i];
                 }
             }

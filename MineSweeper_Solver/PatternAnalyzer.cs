@@ -1,12 +1,34 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 
 namespace MineSweeper_Solver
 {
 
+    // это хлам =((
+    enum CELL_STATUS
+    {
+        C_0 = 0,
+        C_1 = 1,
+        C_2 = 2,
+        C_3 = 3,
+        C_4 = 4,
+        C_5 = 5,
+        C_6 = 6,
+        C_7 = 7,
+        C_8 = 8,
+        C_9 = 9,
+        C_UNKNOWN = -1,
+        C_MINE = -2,
+        C_CHECK_MINE_RMB = -3,
+        C_HERE_IS_MINE = -4,
+        C_CHECK_FREE_LMB = -5,
+    }
+
     public class PatternAnalyzer
     {
         // ToDo: поиск места применения паттерна по "поисковой "маске
+        // ToDo: enum со статусами ячейки
 
         // нужна для гарантированной генерации паттернов и процей инициализации (статистика)
         static bool isInitPatternAnalyzer = false;
@@ -38,14 +60,15 @@ namespace MineSweeper_Solver
                     int v_pm = pm.cells[j, i];
                     int v_p = p.cells[j, i];
 
-                    if (v_m == v_pm && v_m == 0) { tmp_m.cells[j, i] = 0; continue; }
-                    if (v_m == v_pm && (v_m > 0 && v_m < 9)) { tmp_m.cells[j, i] = v_m; continue; }
-                    if (v_pm == 0 && (v_m > 0 && v_m < 9)) { tmp_m.cells[j, i] = 0; continue; }
-                    if (v_pm == -1 && (v_m == -1 || v_m == -2 || v_m == -3)) { tmp_m.cells[j, i] = -1; continue; }
+                    // G - GAME (v_m), PM - PATTERN MASK (v_pm), P - PATTERN (v_p), T - TEMP (tmp_m)
+                    if (v_m == v_pm && v_m == 0) { tmp_m.cells[j, i] = 0; continue; } // G = PM = " " => T" "
+                    if (v_m == v_pm && (v_m > 0 && v_m < 9)) { tmp_m.cells[j, i] = v_m; continue; } // G = PM = "12345678" => T"12345678"
+                    if (v_pm == 0 && (v_m > 0 && v_m < 9)) { tmp_m.cells[j, i] = 0; continue; } // PM" " && G"12345678" => T" "
+                    if (v_pm == -1 && (v_m == -1 || v_m == -2 || v_m == -3)) { tmp_m.cells[j, i] = -1; continue; } // PM"#" & G"#M@" => T"#"
 
-                    if (v_pm == -1 && (v_m > 0 && v_m < 9) && (v_p != -2 || v_m == -3)) { tmp_m.cells[j, i] = -1; continue; }
+                    if (v_pm == -1 && (v_m > 0 && v_m < 9) && v_p != -2) { tmp_m.cells[j, i] = -1; continue; } // PM"#" & G"12345678" & !P"M" => T"#"
 
-                    if (v_pm == 0 && (v_m == -1 || v_m == -2 || v_m == -3)) { tmp_m.cells[j, i] = v_m; continue; };
+                    if (v_pm == 0 && (v_m == -1 || v_m == -2 || v_m == -3)) { tmp_m.cells[j, i] = v_m; continue; }; // PM" " & G"#M@" => T"#M@"
 
 
                 }
@@ -65,7 +88,7 @@ namespace MineSweeper_Solver
                 {
                     int v_m = m.cells[j, i];
 
-                    if (v_m == -2 || v_m == -3)
+                    if (v_m == -2 || v_m == -3 || v_m == -4 || v_m == -5)
                     {
                         tmp_m.cells[j, i] = v_m;
                     }
@@ -107,14 +130,21 @@ namespace MineSweeper_Solver
                     {
                         int
                             v_mm = mines_m.cells[j, i],
-                            v_mp = mines_p.cells[j, i];
+                            v_mp = mines_p.cells[j, i],
+                            v_m = m.cells[j, i];
 
-                        if (v_mm == 0 && v_mp == 0) { continue; }
-                        if ((v_mm == -2 || v_mm == -3) && v_mp == -2) { continue; }
+                        // G - GAME (v_mm), P - PATTERN (v_mp), R - RESULT (result)
+                        if (v_mm == 0 && v_mp == 0) { continue; } // G" " и P" " - пропускаем
+                        if ((v_mm == -2 || v_mm == -3) && v_mp == -2) { continue; } // (G"M" | G"@") & P"M" - пропускаем
 
-                        if ((v_mm == -2 || v_mm == -3) && v_mp == 0) { return false; }
+                        if ((v_mm == -2 || v_mm == -3) && v_mp == 0) { return false; } // (G"M" | G"@") & P" " - false
 
-                        if (v_mm == 0 && v_mp == -2) { result.cells[j, i] = -3; continue; }
+                        if (v_mm == 0 && v_mp == -2) { result.cells[j, i] = -3; continue; } //G" " & P"M" - set R"@"
+
+                        if (v_mm == 0 && v_mp == -4) { return false; } //G" " & P"W" - false
+                        if ((v_mm == -2 || v_mm == -3) && v_mp == -4) { continue; } //G"M@" & P"W" - пропускаем
+                        if ((v_mm == -2 || v_mm == -3) && v_mp == -5) { return false; ; } //MG"M@" & MP"^" - false
+                        if (v_mm == 0 && v_mp == -5 && v_m == -1) { result.cells[j, i] = -5; continue; } //MG" " & MP"^" & G"#" - set R"^"
                     }
                 }
 
@@ -179,7 +209,7 @@ namespace MineSweeper_Solver
         }
 
         // преобразуем массив строк в матрицу
-        static matrix loadPatternFromStringArr(string[] patternStringArr)
+        public static matrix loadPatternFromStringArr(string[] patternStringArr)
         {
             matrix tmp_m;
 
@@ -204,7 +234,7 @@ namespace MineSweeper_Solver
                 {
                     switch (patternStringArr[j][i])
                     {
-                        case ' ': tmp_m.cells[j, i] = 0; break;
+                        case ' ': tmp_m.cells[j, i] = 0; break; // открытая любая ячейка
                         case '1': tmp_m.cells[j, i] = 1; break;
                         case '2': tmp_m.cells[j, i] = 2; break;
                         case '3': tmp_m.cells[j, i] = 3; break;
@@ -213,9 +243,11 @@ namespace MineSweeper_Solver
                         case '6': tmp_m.cells[j, i] = 6; break;
                         case '7': tmp_m.cells[j, i] = 7; break;
                         case '8': tmp_m.cells[j, i] = 8; break;
-                        case '#': tmp_m.cells[j, i] = -1; break;
-                        case 'M': tmp_m.cells[j, i] = -2; break;
-                        case '@': tmp_m.cells[j, i] = -3; break;
+                        case '#': tmp_m.cells[j, i] = -1; break; // закрытая ячейка
+                        case 'M': tmp_m.cells[j, i] = -2; break; // установка пометки
+                        case '@': tmp_m.cells[j, i] = -3; break; // ПКМ
+                        case 'W': tmp_m.cells[j, i] = -4; break; // обязательное наличие мины (пометки)
+                        case '^': tmp_m.cells[j, i] = -5; break; // ЛКМ
 
                         default: throw new Exception($"Not allowed char '{patternStringArr[j][i]}' in pattern string");
                     }
@@ -329,11 +361,11 @@ namespace MineSweeper_Solver
 
                 if (patternStatistics[n] > 0)
                 {
-                    ConsoleHelper.offsetWrite(s, new System.Drawing.Point { X = posX, Y = posY }, fg: ConsoleColor.Yellow);
+                    ConsoleHelper.offsetWrite(s, new Point(posX, posY), fg: ConsoleColor.Yellow);
                 }
                 else
                 {
-                    ConsoleHelper.offsetWrite(s, new System.Drawing.Point { X = posX, Y = posY }, fg: ConsoleColor.Gray);
+                    ConsoleHelper.offsetWrite(s, new Point(posX, posY), fg: ConsoleColor.Gray);
                 }
             }
         }
@@ -362,11 +394,74 @@ namespace MineSweeper_Solver
                         Console.SetCursorPosition(1 + m * widthPattern, 2);
                         Console.Write((n + m).ToString());
                         ConsoleHelper.drawBorder(1 + m * widthPattern, 4, listCachePattern[n + m].cols + 2, listCachePattern[n + m].rows + 2);
-                        ConsoleHelper.drawMatrix(listCachePattern[n + m], new System.Drawing.Point { X = 2 + m * widthPattern, Y = 5 });
+                        ConsoleHelper.drawMatrix(listCachePattern[n + m], new Point { X = 2 + m * widthPattern, Y = 5 });
 
                     }
                     Console.ReadLine();
                 }
+            }
+        }
+
+        public static void runPatternTests(patternTest[] patternTestsBank)
+        {
+            for (int n = 0; n < patternTestsBank.Length; n += 3)
+            {
+                Console.Clear();
+                for (int m = 0; m < 3 && n + m < patternTestsBank.Length; m++)
+                {
+                    string pName = patternTestsBank[n + m].Name;
+                    matrix mGameField = patternTestsBank[n + m].GameField;
+                    matrix mPattern = patternTestsBank[n + m].Pattern;
+                    bool result = patternTestsBank[n + m].Result;
+
+                    int newPosY = m * 8;
+
+                    ConsoleHelper.offsetWrite((n + m).ToString() + " - " + pName, new Point(4, newPosY));
+
+                    ConsoleHelper.offsetWrite("GAME", new Point(2, 1 + newPosY));
+                    ConsoleHelper.drawMatrixWithBorder(mGameField, new Point(1, 2 + newPosY));
+
+                    ConsoleHelper.offsetWrite("PATTER", new Point(9, 1 + newPosY));
+                    ConsoleHelper.drawMatrixWithBorder(mPattern, new Point(9, 2 + newPosY));
+
+                    matrix mPatternMask = MatrixHelper.getPatternMask(mPattern);
+                    ConsoleHelper.offsetWrite("P MASK", new Point(17, 1 + newPosY));
+                    ConsoleHelper.drawMatrixWithBorder(mPatternMask, new Point(17, 2 + newPosY));
+
+                    matrix mSum = sumMatrixAndPattern(mGameField, mPattern);
+                    ConsoleHelper.offsetWrite("SUM", new Point(25, 1 + newPosY));
+                    ConsoleHelper.drawMatrixWithBorder(mSum, new Point(25, 2 + newPosY));
+                    if (MatrixHelper.isEqualMatrix(mPatternMask, mSum))
+                    {
+                        ConsoleHelper.offsetWrite("TR", new Point(29, 1 + newPosY), fg: ConsoleColor.Green);
+                    }
+                    else
+                    {
+                        ConsoleHelper.offsetWrite("FA", new Point(29, 1 + newPosY), fg: ConsoleColor.Red);
+                    }
+
+                    matrix mGAmeMines = getMines(mGameField);
+                    ConsoleHelper.offsetWrite("G MINE", new Point(33, 1 + newPosY));
+                    ConsoleHelper.drawMatrixWithBorder(mGAmeMines, new Point(33, 2 + newPosY));
+
+                    matrix mPatternMines = getMines(mPattern);
+                    ConsoleHelper.offsetWrite("P MINE", new Point(41, 1 + newPosY));
+                    ConsoleHelper.drawMatrixWithBorder(mPatternMines, new Point(41, 2 + newPosY));
+
+                    matrix mResult = MatrixHelper.getNoInitMatrixFrom(mGameField);
+                    MatrixHelper.initMatrixWithZeroes(ref mResult);
+
+                    if (cmpMatrixAndPattern(mGameField, mPattern, ref mResult))
+                    {
+                        ConsoleHelper.offsetWrite("TRUE", new Point(49, 1 + newPosY), ConsoleColor.Green);
+                        ConsoleHelper.drawMatrixWithBorder(mResult, new Point(49, 2 + newPosY));
+                    }
+                    else
+                    {
+                        ConsoleHelper.offsetWrite("FALSE", new Point(49, 1 + newPosY), ConsoleColor.Red);
+                    }
+                }
+                Console.ReadLine();
             }
         }
 
@@ -383,6 +478,11 @@ namespace MineSweeper_Solver
                     {
                         msgf.cells[i, j].sendMouseEvent = true;
                         msgf.cells[i, j].mouseEvent = MouseEventHelper.RIGHT_CLICK;
+                    }
+                    if (v_m == -5)
+                    {
+                        msgf.cells[i, j].sendMouseEvent = true;
+                        msgf.cells[i, j].mouseEvent = MouseEventHelper.LEFT_CLICK;
                     }
                 }
             }
