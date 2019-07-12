@@ -10,19 +10,8 @@ namespace MineSweeper_Solver
 
     public class PatternBank
     {
-        public static string[][] BankMain = new string[][] {
-            new string[] {
-                "   ",
-                "121",
-                "M#M",
-            },
-
-            new string[] {
-                "    ",
-                "1221",
-                "#MM#",
-            },
-
+        // это нужно сгенерировать и сохранить в файл
+        public static string[][] bankBasic = new string[][] {
             new string[] {
                 "   ",
                 " 1 ",
@@ -37,20 +26,49 @@ namespace MineSweeper_Solver
 
             new string[] {
                 "   ",
+                " 2 ",
+                "M M",
+            },
+
+            new string[] {
+                "M  ",
+                " 2 ",
+                "M  ",
+            },
+
+            new string[] {
+                " M ",
+                " 2 ",
+                "M  ",
+            },
+
+            new string[] {
+                "  M",
+                " 2 ",
+                "M  ",
+            },
+
+            new string[] {
+                " M ",
+                " 2 ",
+                " M ",
+            },
+
+            new string[] {
+                "   ",
+                " 2M",
+                " M ",
+            },
+            new string[] {
+                "   ",
                 " 3 ",
                 "MMM",
             },
 
             new string[] {
                 "   ",
-                " 3М",
+                " 3M",
                 " MM",
-            },
-
-            new string[] {
-                "    ",
-                " 12 ",
-                " ##M",
             },
 
             new string[] {
@@ -60,9 +78,45 @@ namespace MineSweeper_Solver
             },
 
             new string[] {
+                "M  ",
+                " 4 ",
+                "MMM",
+            },
+
+            new string[] {
+                " M ",
+                " 4 ",
+                "MMM",
+            },
+
+            new string[] {
                 "  M",
                 " 5M",
                 "MMM",
+            },
+
+            new string[] {
+                " MM",
+                " 5 ",
+                "MMM",
+            },
+
+            new string[] {
+                "M M",
+                " 5 ",
+                "MMM",
+            },
+
+            new string[] {
+                "M M",
+                " 5M",
+                "MM ",
+            },
+
+            new string[] {
+                "MM ",
+                " 5M",
+                "MM ",
             },
 
             new string[] {
@@ -76,6 +130,22 @@ namespace MineSweeper_Solver
                 " 7M",
                 "MMM",
             },
+
+        };
+
+        public static string[][] bankNormal = new string[][] {
+            new string[] {
+                "   ",
+                "121",
+                "M#M",
+            },
+
+            new string[] {
+                "    ",
+                "1221",
+                "#MM#",
+            },
+
 
             new string[] {
                 "     ",

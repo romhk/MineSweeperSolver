@@ -48,6 +48,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConsoleHelper.cs" />
     <Compile Include="MatrixHelper.cs" />
     <Compile Include="MouseEventHelper.cs" />
     <Compile Include="PatternAnalyzer.cs" />
