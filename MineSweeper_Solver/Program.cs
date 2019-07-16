@@ -17,9 +17,10 @@ namespace MineSweeper_Solver
     public struct MSGF_Cell
     {
         public int state;
+        public Point clickArea;
         public IUIAutomationElement elem;
         public bool sendMouseEvent;
-        public MouseEventHelper.MouseEvent[] mouseEvent;
+        public MouseEventHelper.CommonMouseEvent MouseEvent;
     }
 
     public struct MSGF_Data
@@ -29,9 +30,19 @@ namespace MineSweeper_Solver
         public int ColsCount;
         public int TimeSecs;
         public int RemainingMines;
-        public int Xcells;
     }
 
+
+
+    public class ProgramFlags
+    {
+        public bool flagMainWindowFound = false;
+        public bool flagFullDataParsed = false;
+        public bool flagGameStarted = false;
+        public bool flagOpenedDialogWindow = false;
+        public bool flagUseNewMouseEvents = true;
+        public bool flagAbortSendMouseEvent = false;
+    }
 
 
     public class Program
@@ -39,14 +50,17 @@ namespace MineSweeper_Solver
         [DllImport("user32.dll", EntryPoint = "FindWindow", SetLastError = true)]
         static extern IntPtr FindWindowByCaption(IntPtr ZeroOnly, string lpWindowName);
 
-
         static CUIAutomation _automation = new CUIAutomation();
 
         static string WindowCaption = "Сапер";
-        static IntPtr MineSweeperHWND;
+        public static IntPtr MineSweeperHWND;
         static IUIAutomationElement appElement;
         static int GameField_X = 2;
         static int GameField_Y = 2;
+        public static ProgramFlags pFlags = new ProgramFlags();
+
+        // на время тестирования остается возможность переключиться на старый метод отправки кликов
+        static bool useMouseEventNew = true;
 
         public static void SendMouseEventsFromMSGF(MSGF_Data data)
         {
@@ -56,11 +70,16 @@ namespace MineSweeper_Solver
                 {
                     if (data.cells[i, j].sendMouseEvent)
                     {
-                        tagRECT r = data.cells[i, j].elem.CurrentBoundingRectangle;
-                        Point pCoordinates = new Point() { X = (int)((r.left + r.right) / 2), Y = (int)((r.top + r.bottom) / 2) };
+                        if (!pFlags.flagAbortSendMouseEvent)
+                        {
+                            MSGF_Cell cell = data.cells[i, j];
 
-                        MouseEventHelper.sendMouseEventArr(data.cells[i, j].mouseEvent,MineSweeperHWND, pCoordinates);
-
+                            MouseEventHelper.sendMouseEventUI(cell.MouseEvent, MineSweeperHWND, cell.clickArea, pFlags.flagUseNewMouseEvents, ref pFlags.flagAbortSendMouseEvent);
+                        }
+                        else
+                        {
+                            return;
+                        }
                     }
                 }
             }
@@ -116,7 +135,7 @@ namespace MineSweeper_Solver
             {
                 state = c.state,
                 elem = c.elem,
-                mouseEvent = c.mouseEvent,
+                MouseEvent = c.MouseEvent,
                 sendMouseEvent = c.sendMouseEvent
             };
 
@@ -161,62 +180,105 @@ namespace MineSweeper_Solver
             public int count_mine_to_check;
         }
 
-        static public MSGF_Data ParseMineSweeperGameField()
+        public static bool ParseMineSweeperGameField(IntPtr window, ref MSGF_Data data, ref bool statusFlag)
         {
-            MSGF_Data result = new MSGF_Data();
-            result.Xcells = 0;
-
-            appElement = _automation.ElementFromHandle(MineSweeperHWND);
-
-            var array_rows = appElement.FindAll(TreeScope.TreeScope_Children, _automation.CreatePropertyCondition(UIA_PropertyIds.UIA_ControlTypePropertyId, UIA_ControlTypeIds.UIA_CustomControlTypeId));
-            if (array_rows.Length > 1)
+            int getCellStatusByName(string name)
             {
-                result.RowsCount = array_rows.Length - 1;
+                if (name.Contains("вопросительным знаком")) { return -1; }
+                if (name.Contains("помечена")) { return -2; }
+                if (name.Contains("неоткрыта")) { return -1; }
+                if (name.Contains("мин нет")) { return 0; }
+                if (name.Contains("ячейки: 1")) { return 1; }
+                if (name.Contains("ячейки: 2")) { return 2; }
+                if (name.Contains("ячейки: 3")) { return 3; }
+                if (name.Contains("ячейки: 4")) { return 4; }
+                if (name.Contains("ячейки: 5")) { return 5; }
+                if (name.Contains("ячейки: 6")) { return 6; }
+                if (name.Contains("ячейки: 7")) { return 7; }
+                if (name.Contains("ячейки: 8")) { return 8; }
 
-                /*var elem_texts = array_rows.GetElement(0).FindAll(TreeScope.TreeScope_Children, _automation.CreatePropertyCondition(UIA_PropertyIds.UIA_ControlTypePropertyId, UIA_ControlTypeIds.UIA_TextControlTypeId));
-                if (elem_texts.Length == 2)
-                {
-                    result.TimeSecs = Convert.ToInt32(elem_texts.GetElement(0).GetCurrentPropertyValue(UIA_PropertyIds.UIA_ValueValuePropertyId));
-                    result.RemainingMines = Convert.ToInt32(elem_texts.GetElement(1).GetCurrentPropertyValue(UIA_PropertyIds.UIA_ValueValuePropertyId));
-                }*/
-
-                // Ищем ячейки
-                for (int j = 1; j < array_rows.Length; j++)
-                {
-                    var elem_row = array_rows.GetElement(j);
-                    var array_cells = elem_row.FindAll(TreeScope.TreeScope_Children, _automation.CreatePropertyCondition(UIA_PropertyIds.UIA_ControlTypePropertyId, UIA_ControlTypeIds.UIA_ButtonControlTypeId));
-
-                    if (j == 1)
-                    {
-                        result.ColsCount = array_cells.Length;
-                        result.cells = new MSGF_Cell[result.ColsCount, result.RowsCount];
-                    }
-
-                    for (int i = 0; i < array_cells.Length; i++)
-                    {
-
-                        {
-                            string nm = array_cells.GetElement(i).CurrentName;
-                            result.cells[i, j - 1].elem = array_cells.GetElement(i); // Runtime Error Out of range
-
-
-                            if (nm.Contains("помечена")) { result.cells[i, j - 1].state = -2; continue; }
-                            if (nm.Contains("неоткрыта")) { result.cells[i, j - 1].state = -1; result.Xcells++; continue; }
-                            if (nm.Contains("мин нет")) { result.cells[i, j - 1].state = 0; continue; }
-                            if (nm.Contains("ячейки: 1")) { result.cells[i, j - 1].state = 1; continue; }
-                            if (nm.Contains("ячейки: 2")) { result.cells[i, j - 1].state = 2; continue; }
-                            if (nm.Contains("ячейки: 3")) { result.cells[i, j - 1].state = 3; continue; }
-                            if (nm.Contains("ячейки: 4")) { result.cells[i, j - 1].state = 4; continue; }
-                            if (nm.Contains("ячейки: 5")) { result.cells[i, j - 1].state = 5; continue; }
-                            if (nm.Contains("ячейки: 6")) { result.cells[i, j - 1].state = 6; continue; }
-                            if (nm.Contains("ячейки: 7")) { result.cells[i, j - 1].state = 7; continue; }
-                            if (nm.Contains("ячейки: 8")) { result.cells[i, j - 1].state = 8; continue; }
-                        }
-                    }
-                }
+                Console.WriteLine("ERR getCellStatusByName");
+                return -100;
             }
 
-            return result;
+            try
+            {
+                statusFlag = false;
+
+                if (!statusFlag)
+                {
+                    data = new MSGF_Data();
+
+                    appElement = _automation.ElementFromHandle(window);
+
+                    var array_rows = appElement.FindAll(TreeScope.TreeScope_Children, _automation.CreatePropertyCondition(UIA_PropertyIds.UIA_ControlTypePropertyId, UIA_ControlTypeIds.UIA_CustomControlTypeId));
+
+                    if (array_rows.Length > 1)
+                    {
+                        data.RowsCount = array_rows.Length - 1;
+
+                        /*var elem_texts = array_rows.GetElement(0).FindAll(TreeScope.TreeScope_Children, _automation.CreatePropertyCondition(UIA_PropertyIds.UIA_ControlTypePropertyId, UIA_ControlTypeIds.UIA_TextControlTypeId));
+                        if (elem_texts.Length == 2)
+                        {
+                            result.TimeSecs = Convert.ToInt32(elem_texts.GetElement(0).GetCurrentPropertyValue(UIA_PropertyIds.UIA_ValueValuePropertyId));
+                            result.RemainingMines = Convert.ToInt32(elem_texts.GetElement(1).GetCurrentPropertyValue(UIA_PropertyIds.UIA_ValueValuePropertyId));
+                        }*/
+
+                        // Ищем ячейки
+                        for (int j = 1; j < array_rows.Length; j++)
+                        {
+                            var elem_row = array_rows.GetElement(j);
+                            var array_cells = elem_row.FindAll(TreeScope.TreeScope_Children, _automation.CreatePropertyCondition(UIA_PropertyIds.UIA_ControlTypePropertyId, UIA_ControlTypeIds.UIA_ButtonControlTypeId));
+
+                            if (j == 1)
+                            {
+                                data.ColsCount = array_cells.Length;
+                                data.cells = new MSGF_Cell[data.ColsCount, data.RowsCount];
+                            }
+
+                            for (int i = 0; i < array_cells.Length; i++)
+                            {
+
+                                {
+                                    IUIAutomationElement cell = array_cells.GetElement(i);
+                                    string nm = cell.CurrentName;
+                                    tagRECT R = cell.CurrentBoundingRectangle;
+
+                                    data.cells[i, j - 1].elem = array_cells.GetElement(i); // Runtime Error Out of range
+                                    data.cells[i, j - 1].clickArea = new Point((R.left + R.right) / 2, (R.top + R.bottom) / 2);
+
+                                    data.cells[i, j - 1].state = getCellStatusByName(nm);
+                                }
+                            }
+                        }
+                    }
+
+                    Console.WriteLine("Full Parsing");
+                    statusFlag = true;
+                    return true;
+                }
+                else
+                {
+                    for (int j = 0; j < data.RowsCount; j++)
+                    {
+                        for (int i = 0; i < data.ColsCount; i++)
+                        {
+                            if (data.cells[i, j].state == -1)
+                            {
+                            }
+                        }
+                    }
+                    Console.Write("Minimal parsing");
+                    return true;
+                }
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                Console.WriteLine("Parse COMException");
+                statusFlag = false;
+                return false;
+            }
+            return false;
         }
 
         public static void ResultConsoleOutput(MSGF_Data data)
@@ -225,7 +287,7 @@ namespace MineSweeper_Solver
             // рисуем границы
             Console.ResetColor();
             Console.Clear();
-            Console.WriteLine($"  Time: {data.TimeSecs}    Mines: {data.RemainingMines}  Xcells: {data.Xcells}");
+            Console.WriteLine($"  Time: {data.TimeSecs}    Mines: {data.RemainingMines}");
             Console.SetCursorPosition(GameField_X, GameField_Y);
             Console.Write($"|{new string('-', data.ColsCount)}|");
 
@@ -270,7 +332,7 @@ namespace MineSweeper_Solver
                     else
                     {
                         Console.ResetColor();
-                        if (data.cells[i, j].mouseEvent == MouseEventHelper.MIDDLE_CLICK) { Console.ForegroundColor = ConsoleColor.Magenta; }
+                        if (data.cells[i, j].MouseEvent == MouseEventHelper.CommonMouseEvent.MIDDLE_CLICK) { Console.ForegroundColor = ConsoleColor.Magenta; }
                         Console.SetCursorPosition(GameField_X + 1 + i, GameField_Y + 1 + j);
                         Console.Write(data.cells[i, j].state.ToString());
                         Console.ResetColor();
@@ -281,38 +343,40 @@ namespace MineSweeper_Solver
 
         public static bool IsGameStarted(MSGF_Data data)
         {
-            bool result = false;
-
             for (int i = 0; i < data.ColsCount; i++)
             {
                 for (int j = 0; j < data.RowsCount; j++)
                 {
                     if (data.cells[i, j].state != -1)
                     {
-                        result = true;
-                        break;
+                        return true;
                     }
                 }
-                if (result) break;
             }
 
-            return result;
+            Console.WriteLine($"IsGameStarted FALSE Data: {data.ColsCount}x{data.RowsCount}");
+            return false;
         }
 
         public static bool IsDialogWindow()
         {
-            bool result = false;
-
-            var array_windows = appElement.FindAll(TreeScope.TreeScope_Children, _automation.CreatePropertyCondition(UIA_PropertyIds.UIA_ControlTypePropertyId, UIA_ControlTypeIds.UIA_WindowControlTypeId));
-
-            for (int i = 0; i < array_windows.Length; i++)
+            try
             {
-                string s_name = array_windows.GetElement(i).CurrentName;
+                var array_windows = appElement.FindAll(TreeScope.TreeScope_Children, _automation.CreatePropertyCondition(UIA_PropertyIds.UIA_ControlTypePropertyId, UIA_ControlTypeIds.UIA_WindowControlTypeId));
 
-                if (s_name.Contains("Игра проиграна") || s_name.Contains("Игра выиграна") || s_name.Contains("Новая игра")) { result = true; }
+                for (int i = 0; i < array_windows.Length; i++)
+                {
+                    string s_name = array_windows.GetElement(i).CurrentName;
+
+                    if (s_name.Contains("Игра проиграна") || s_name.Contains("Игра выиграна") || s_name.Contains("Новая игра")) { return true; }
+                }
+            }
+            catch (Exception e)
+            {
+                return true;
             }
 
-            return result;
+            return false;
         }
 
         public static string diagTimeToString(TimeSpan t)
@@ -393,7 +457,7 @@ namespace MineSweeper_Solver
                             {
                                 data.cells[mtx.coord_closed[n].x, mtx.coord_closed[n].y].state = -3;
                                 data.cells[mtx.coord_closed[n].x, mtx.coord_closed[n].y].sendMouseEvent = true;
-                                data.cells[mtx.coord_closed[n].x, mtx.coord_closed[n].y].mouseEvent = MouseEventHelper.RIGHT_CLICK;
+                                data.cells[mtx.coord_closed[n].x, mtx.coord_closed[n].y].MouseEvent = MouseEventHelper.CommonMouseEvent.RIGHT_CLICK;
                             }
                         }
                         else
@@ -401,7 +465,7 @@ namespace MineSweeper_Solver
                             if (mines_count == mtx.count_mine_checked)
                             {
                                 data.cells[i, j].sendMouseEvent = true;
-                                data.cells[i, j].mouseEvent = MouseEventHelper.MIDDLE_CLICK;
+                                data.cells[i, j].MouseEvent = MouseEventHelper.CommonMouseEvent.MIDDLE_CLICK;
                             }
                         }
                     }
@@ -409,54 +473,71 @@ namespace MineSweeper_Solver
             }
         }
 
+        public static bool findWindow(string caption, ref IntPtr wHwnd)
+        {
+            IntPtr tmpPtr = FindWindowByCaption(IntPtr.Zero, caption);
+            if (tmpPtr != IntPtr.Zero)
+            {
+                wHwnd = tmpPtr;
+                return true;
+            }
+            return false;
+        }
+
         static void Main(string[] args)
         {
             // ToDo: Поиск названеия окна на разных языках
-            MineSweeperHWND = FindWindowByCaption(IntPtr.Zero, WindowCaption);
 
-            // если окно игры не найдено, то выход из приложения
-            if (MineSweeperHWND == IntPtr.Zero)
-            {
-                Console.WriteLine("Окно игры не найдено!");
-                System.Threading.Thread.Sleep(3000);
-                System.Environment.Exit(-1);
-            }
-
+            // Генерирование кеша паттернов для анализатора
             PatternAnalyzer.initPatternAnalizer(quiet: false);
+
+            MSGF_Data ms_data = new MSGF_Data();
 
             while (true)
             {
-                // Парсим поле
-                var ms_data = ParseMineSweeperGameField();
-
-                // проверка на наличие открытых ячеек
-                if (IsGameStarted(ms_data))
+                if (findWindow(WindowCaption, ref MineSweeperHWND))
                 {
-                    if (!IsDialogWindow())
+                    if (ParseMineSweeperGameField(MineSweeperHWND, ref ms_data, ref pFlags.flagFullDataParsed))
                     {
-                        // поиск и применение паттернов на поле
-                        PatternAnalyzer.analyzeMSGF(ref ms_data);
+                        // проверка на наличие открытых ячеек
+                        if (IsGameStarted(ms_data))
+                        {
+                            if (!IsDialogWindow())
+                            {
+                                // поиск и применение паттернов на поле
+                                PatternAnalyzer.analyzeMSGF(ref ms_data);
 
-                        // элементарный анализ
-                        Basic_AnalyzeMSGF(ref ms_data);
+                                // элементарный анализ
+                                Basic_AnalyzeMSGF(ref ms_data);
 
-                        // клики по ячейкам
-                        SendMouseEventsFromMSGF(ms_data);
-                    }
-                    else
-                    {
-                        // если открыто диалоговое окно (начало игры, вы выиграли или проиграли)
-                        Console.ResetColor();
-                        Console.WriteLine("Открыто диалоговое окно");
-                        System.Threading.Thread.Sleep(100);
+                                // клики по ячейкам
+                                pFlags.flagAbortSendMouseEvent = false;
+                                SendMouseEventsFromMSGF(ms_data);
+                            }
+                            else
+                            {
+                                // если открыто диалоговое окно (начало игры, вы выиграли или проиграли)
+                                pFlags.flagFullDataParsed = false;
+                                Console.ResetColor();
+                                Console.WriteLine("Открыто диалоговое окно");
+                                System.Threading.Thread.Sleep(100);
+                            }
+                        }
+                        else
+                        {
+                            // если все ячейки закрыты
+                            pFlags.flagFullDataParsed = false;
+                            Console.ResetColor();
+                            Console.WriteLine("Игра не начата");
+                            System.Threading.Thread.Sleep(100);
+                        }
                     }
                 }
                 else
                 {
-                    // если все ячейки закрыты
-                    Console.ResetColor();
-                    Console.WriteLine("Игра не начата");
-                    System.Threading.Thread.Sleep(100);
+                    pFlags.flagFullDataParsed = false;
+                    Console.WriteLine("Не найдено окно игры");
+                    System.Threading.Thread.Sleep(1000);
                 }
             }
         }

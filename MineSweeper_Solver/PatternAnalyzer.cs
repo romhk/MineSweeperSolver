@@ -477,12 +477,12 @@ namespace MineSweeper_Solver
                     if (v_m == -3)
                     {
                         msgf.cells[i, j].sendMouseEvent = true;
-                        msgf.cells[i, j].mouseEvent = MouseEventHelper.RIGHT_CLICK;
+                        msgf.cells[i, j].MouseEvent = MouseEventHelper.CommonMouseEvent.RIGHT_CLICK;
                     }
                     if (v_m == -5)
                     {
                         msgf.cells[i, j].sendMouseEvent = true;
-                        msgf.cells[i, j].mouseEvent = MouseEventHelper.LEFT_CLICK;
+                        msgf.cells[i, j].MouseEvent = MouseEventHelper.CommonMouseEvent.LEFT_CLICK;
                     }
                 }
             }
